@@ -9,8 +9,6 @@
 #include "queue.h"
 
 #define SENSOR_INTERVAL_MS 2000
-#define TAGO_BROKER "mqtt.tago.io"
-#define TAGO_PORT 1883  // Porta segura com TLS
 
 QueueHandle_t mqttQueue;
 
@@ -34,9 +32,9 @@ void vSensorTask(void *pvParameters) {
         float value = read_sensor();
         MqttMessage msg;
 
-        snprintf(msg.topic, sizeof(msg.topic), "tago/data");
+        snprintf(msg.topic, sizeof(msg.topic), "v1/devices/me/telemetry");
         snprintf(msg.payload, sizeof(msg.payload),
-                 "{\"variable\":\"temperature\",\"value\":%.2f}", value);
+                 "{\"temperature\": %.2f}", value);
 
         if (xQueueSend(mqttQueue, &msg, portMAX_DELAY) == pdPASS) {
             printf("[SensorTask] Valor lido: %.2f\n", value);
@@ -64,6 +62,29 @@ static void on_connect(struct mosquitto *mosq, void *obj, int rc)
     fflush(stdout);
 }
 
+int connect_broker(struct mosquitto *mosq, const char *host, int port) 
+{
+    // Implementar conexão com o broker MQTT
+    int rc;
+
+    printf("[MQTT] Conectando ao broker %s:%d...\n", host, port);
+    rc = mosquitto_connect(mosq, host, port,  60);
+
+    if (rc == MOSQ_ERR_INVAL)
+    {
+        printf("[ERRO] mosquitto_connect inválido: %s. Verifique parâmetros.\n", mosquitto_strerror(rc));
+        mosquitto_destroy(mosq);
+        mosquitto_lib_cleanup();
+        vTaskDelete(NULL);
+    }
+    else {
+        printf("[ERRO] mosquitto_connect falhou: %s. Tentando novamente em 2s...\n", mosquitto_strerror(rc));
+        fflush(stdout);
+    }
+
+    return rc;
+}
+
 void vMqttTask(void *pvParameters) {
     printf("[MqttTask] Iniciada.\n");
     fflush(stdout);
@@ -73,58 +94,27 @@ void vMqttTask(void *pvParameters) {
 
     const char *token = getenv("TAGO_DEVICE_TOKEN");
     const char *client_id = getenv("TAGO_CLIENT_ID");  // opcional
+    const char *freertos_mqtt_host = getenv("freertos_mqtt_host");  // opcional
+    const char *freertos_mqtt_port = getenv("freertos_mqtt_port");  // opcional
 
     if (!token) {
         printf("[ERRO] Variável de ambiente TAGO_DEVICE_TOKEN não definida!\n");
         vTaskDelete(NULL);
-        return;
+    }
+    else {
+        printf("[MqttTask] Usando TAGO_DEVICE_TOKEN: %s\n", token);
     }
 
+    
     mosquitto_lib_init();
+    mosq = mosquitto_new(client_id, true, NULL);
+    
+    // Nenhum usuário/senha necessário — conexão local
+    mosquitto_username_pw_set(mosq, token, "");
+    int rc = connect_broker(mosq, freertos_mqtt_host, atoi(freertos_mqtt_port));
 
-    mosq = mosquitto_new(client_id ? client_id : "freertos_tago_client", true, NULL);
-    if (!mosq) {
-        printf("[ERRO] Falha ao criar cliente MQTT.\n");
-        mosquitto_lib_cleanup();
-        vTaskDelete(NULL);
-        return;
-    }
+    printf("[MQTT] mosquitto_connect iniciado com sucesso.\n");
 
-    mosquitto_username_pw_set(mosq, "token" , token);
-
-    // if (mosquitto_tls_set(mosq, NULL, "/etc/ssl/certs", NULL, NULL, NULL) != MOSQ_ERR_SUCCESS) {
-    //     printf("[ERRO] Falha ao configurar TLS.\n");
-    //     mosquitto_destroy(mosq);
-    //     mosquitto_lib_cleanup();
-    //     vTaskDelete(NULL);
-    //     return;
-    // }
-
-    // mosquitto_tls_opts_set(mosq, 1, "tlsv1.2", NULL);
-
-    /* Setup callback e flag de conexão */
-    // int connected = 0;
-    // mosquitto_user_data_set(mosq, &connected);
-    // mosquitto_connect_callback_set(mosq, on_connect);
-
-    /* Tentar connect_async repetidamente (evita EINTR em connect bloqueante) */
-    int rc;
-    do {
-        rc = mosquitto_connect(mosq, TAGO_BROKER, TAGO_PORT, 0);
-
-        if (rc == MOSQ_ERR_SUCCESS) {
-            printf("[MQTT] mosquitto_connect iniciado com sucesso.\n");
-        }
-        else {
-            printf("[ERRO] mosquitto_connect falhou: %s. Tentando novamente em 2s...\n",
-                   mosquitto_strerror(rc));
-
-            fflush(stdout);
-            vTaskDelay(pdMS_TO_TICKS(2000));
-        }
-    } while (rc != MOSQ_ERR_SUCCESS);
-
-    printf("[MQTT] Conectando ao broker %s:%d...\n", TAGO_BROKER, TAGO_PORT);
     fflush(stdout);
 
     /* Inicia thread interna da libmosquitto para gerenciar I/O e reconexões */
