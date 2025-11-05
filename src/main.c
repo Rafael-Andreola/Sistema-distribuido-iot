@@ -31,7 +31,11 @@ void print_info(const char *format, ...) {
 
 // Função simulada de leitura do sensor
 float read_sensor() {
-    return (rand() % 3000) / 100.0f;
+    return ((rand() % 9000) / 100.0f) - 20;  // Gera valor entre -20.0 e 70.0
+}
+
+int is_outlier(float value) {
+    return value < -10.0f;
 }
 
 // ===================== TAREFA SENSOR =====================
@@ -40,21 +44,26 @@ void vSensorTask(void *pvParameters) {
 
     while (1) {
         float value = read_sensor();
-        MqttMessage msg;
 
-        const char *sensor_interval = getenv("SENSOR_INTERVAL_MS");
-
-        snprintf(msg.topic, sizeof(msg.topic), "v1/devices/me/telemetry");
-        snprintf(msg.payload, sizeof(msg.payload),
-                 "{\"temperature\": %.2f}", value);
-
-        if (xQueueSend(mqttQueue, &msg, portMAX_DELAY) == pdPASS) {
-            print_info("[SensorTask] Valor lido: %.2f\n", value);
-        } else {
-            printf("[SensorTask] Erro ao enviar para fila MQTT!\n");
+        if(is_outlier(value) == 0)
+        {
+            MqttMessage msg;
+    
+            const char *sensor_interval = getenv("SENSOR_INTERVAL_MS");
+    
+            snprintf(msg.topic, sizeof(msg.topic), "v1/devices/me/telemetry");
+            snprintf(msg.payload, sizeof(msg.payload),
+                     "{\"temperature\": %.2f}", value);
+    
+            if (xQueueSend(mqttQueue, &msg, portMAX_DELAY) == pdPASS) {
+                print_info("[SensorTask] Valor lido: %.2f\n", value);
+            } else {
+                printf("[SensorTask] Erro ao enviar para fila MQTT!\n");
+                fflush(stdout);
+            }
         }
+
         
-        fflush(stdout);
         vTaskDelay(pdMS_TO_TICKS(sensor_interval ? atoi(sensor_interval) : 2000));
     }
 }
