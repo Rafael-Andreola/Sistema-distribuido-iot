@@ -11,7 +11,7 @@ Simulação de dispositivos FreeRTOS que publicam telemetria MQTT (para ThingsBo
   - `CMakeLists.txt` - CMake do projeto
   - `main.c` - código principal (tarefas, MQTT, FreeRTOS POSIX glue).
   - `FreeRTOSConfig.h`
-- `.gitignore` - ignora `.env`.
+- `.gitignore`
 
 ## Requisitos para build local (fora do Docker)
 
