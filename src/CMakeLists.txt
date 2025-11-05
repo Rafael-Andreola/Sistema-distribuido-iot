@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD 11)
 set(FREERTOS_DIR ${CMAKE_SOURCE_DIR}/FreeRTOS-Kernel)
 
 add_executable(freertos_mqtt_tago
-    src/main.c
+    main.c
     ${FREERTOS_DIR}/tasks.c
     ${FREERTOS_DIR}/queue.c
     ${FREERTOS_DIR}/list.c
@@ -20,7 +20,7 @@ add_executable(freertos_mqtt_tago
 target_include_directories(freertos_mqtt_tago PRIVATE
     ${FREERTOS_DIR}/include
     ${FREERTOS_DIR}/portable/ThirdParty/GCC/Posix
-    ${CMAKE_SOURCE_DIR}/src # <-- aqui adicionamos o diretório do FreeRTOSConfig.h
+    ${CMAKE_SOURCE_DIR} # <-- ajustado para o diretório atual
 )
 
 target_link_libraries(freertos_mqtt_tago pthread mosquitto)

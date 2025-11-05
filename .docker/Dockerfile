@@ -20,7 +20,7 @@ WORKDIR /app
 RUN git clone --depth 1 https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 
 # Copia o código-fonte do projeto
-COPY . .
+COPY src .
 
 # Compila o projeto
 RUN mkdir -p build && \

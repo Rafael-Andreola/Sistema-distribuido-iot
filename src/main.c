@@ -3,18 +3,31 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <mosquitto.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 
 QueueHandle_t mqttQueue;
+int enable_infos = 0;
 
 // Estrutura de mensagem
 typedef struct {
     char topic[64];
     char payload[128];
 } MqttMessage;
+
+void print_info(const char *format, ...) {
+    if (enable_infos) {
+        va_list args;
+        va_start(args, format);
+        printf("[INFO] ");
+        vprintf(format, args);
+        va_end(args);
+        fflush(stdout);
+    }
+}
 
 // Função simulada de leitura do sensor
 float read_sensor() {
@@ -23,8 +36,7 @@ float read_sensor() {
 
 // ===================== TAREFA SENSOR =====================
 void vSensorTask(void *pvParameters) {
-    printf("[SensorTask] Iniciada.\n");
-    fflush(stdout);
+    print_info("[SensorTask] Iniciada.\n");
 
     while (1) {
         float value = read_sensor();
@@ -37,7 +49,7 @@ void vSensorTask(void *pvParameters) {
                  "{\"temperature\": %.2f}", value);
 
         if (xQueueSend(mqttQueue, &msg, portMAX_DELAY) == pdPASS) {
-            printf("[SensorTask] Valor lido: %.2f\n", value);
+            print_info("[SensorTask] Valor lido: %.2f\n", value);
         } else {
             printf("[SensorTask] Erro ao enviar para fila MQTT!\n");
         }
@@ -50,7 +62,7 @@ void vSensorTask(void *pvParameters) {
 int connect_broker(struct mosquitto *mosq, const char *host, int port) 
 {
     // Implementar conexão com o broker MQTT
-    printf("[MQTT] Conectando ao broker %s:%d...\n", host, port);
+    print_info("[MQTT] Conectando ao broker %s:%d...\n", host, port);
     int rc = mosquitto_connect(mosq, host, port,  60);
 
     if (rc == MOSQ_ERR_INVAL)
@@ -81,18 +93,15 @@ void sendMessages(struct mosquitto *mosq) {
 
             if(mid == 0) {
                 printf("[ERRO] Falha ao obter ID da mensagem publicada em %s.\n", msg.topic);
-                fflush(stdout);
             }
 
             if (rc == MOSQ_ERR_SUCCESS) {
-                printf("[OK] Id da mensagem: %d Publicado em %s | Payload: %s\n", mid, msg.topic, msg.payload);
+                print_info("[OK] Id da mensagem: %d Publicado em %s | Payload: %s\n", mid, msg.topic, msg.payload);
             } else if (rc == MOSQ_ERR_NO_CONN) {
                 printf("[ERRO] Sem conexão ao publicar em %s. Aguardando reconexão...\n", msg.topic);
             } else {
                 printf("[ERRO] Falha ao publicar em %s: %s\n", msg.topic, mosquitto_strerror(rc));
             }
-
-            fflush(stdout);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -100,8 +109,7 @@ void sendMessages(struct mosquitto *mosq) {
 }
 
 void vMqttTask(void *pvParameters) {
-    printf("[MqttTask] Iniciada.\n");
-    fflush(stdout);
+    print_info("[MqttTask] Iniciada.\n");
 
     struct mosquitto *mosq = NULL;
 
@@ -115,7 +123,7 @@ void vMqttTask(void *pvParameters) {
         vTaskDelete(NULL);
     }
 
-    printf("[MqttTask] Usando DEVICE_TOKEN: %s\n", token);
+    print_info("[MqttTask] Usando DEVICE_TOKEN: %s\n", token);
 
     mosquitto_lib_init();
     mosq = mosquitto_new(client_id, true, NULL);
@@ -129,8 +137,7 @@ void vMqttTask(void *pvParameters) {
     mosquitto_username_pw_set(mosq, token, "");
     int rc = connect_broker(mosq, mqtt_host, atoi(mqtt_port));
 
-    printf("[MQTT] mosquitto_connect iniciado com sucesso.\n");
-    fflush(stdout);
+    print_info("[MQTT] mosquitto_connect iniciado com sucesso.\n");
 
     /* Inicia thread interna da libmosquitto para gerenciar I/O e reconexões */
     if (mosquitto_loop_start(mosq) != MOSQ_ERR_SUCCESS) {
@@ -166,13 +173,15 @@ void create_mqtt_queue() {
 
 // ===================== MAIN =====================
 int main(void) {
-    printf("Iniciando FreeRTOS MQTT TagoIO Simulation...\n");
-    fflush(stdout);
+
+    enable_infos = atoi(getenv("ENABLE_INFOS"));
+
+    print_info("Iniciando FreeRTOS MQTT TagoIO Simulation...\n");
 
     create_mqtt_queue();
 
     if (xTaskCreate(vSensorTask, "SensorTask", 1024, NULL, 1, NULL) == pdPASS)
-        printf("[OK] SensorTask criada.\n");
+        print_info("[OK] SensorTask criada.\n");
     else
     {
         printf("[ERRO] Falha ao criar SensorTask!\n");
@@ -180,7 +189,7 @@ int main(void) {
     }
 
     if (xTaskCreate(vMqttTask, "MqttTask", 2048, NULL, 1, NULL) == pdPASS)
-        printf("[OK] MqttTask criada.\n");
+        print_info("[OK] MqttTask criada.\n");
     else
     {
         printf("[ERRO] Falha ao criar MqttTask!\n");

@@ -28,61 +28,77 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
     depends_on:
       - postgres
-  device1:
+  device_1:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
-    container_name: device1
+    container_name: device_1
     environment:
         CLIENT_ID: dev001
         DEVICE_TOKEN: T1_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 2000
+        SENSOR_INTERVAL_MS: 5000
+        ENABLE_INFOS: 0
     ports:
       - "9091:9090"
     depends_on:
       - postgres
       - thingsboard-ce
-  device2:
+  device_2:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
-    container_name: device2
+    container_name: device_2
     environment:
         CLIENT_ID: dev002
         DEVICE_TOKEN: T2_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 2000
+        SENSOR_INTERVAL_MS: 8000
+        ENABLE_INFOS: 0
     ports:
       - "9092:9090"
     depends_on:
       - postgres
       - thingsboard-ce  
-  device3:
+  device_3:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
-    container_name: device3
+    container_name: device_3
     environment:
         CLIENT_ID: dev003
         DEVICE_TOKEN: T3_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 2000
+        SENSOR_INTERVAL_MS: 10000
+        ENABLE_INFOS: 0
     ports:
       - "9093:9090"
     depends_on:
       - postgres
       - thingsboard-ce
-  device4:
+  device_4:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
-    container_name: device4
+    container_name: device_4
     environment:
         CLIENT_ID: dev004
         DEVICE_TOKEN: T4_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 2000
+        SENSOR_INTERVAL_MS: 3000
+        ENABLE_INFOS: 0
     ports:
       - "9094:9090"
     depends_on:
