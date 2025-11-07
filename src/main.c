@@ -9,7 +9,7 @@
 #include "task.h"
 #include "queue.h"
 
-QueueHandle_t mqttQueue;
+QueueHandle_t queue;
 int enable_infos = 0;
 
 // Estrutura de mensagem
@@ -23,7 +23,9 @@ void print_info(const char *format, ...) {
         va_list args;
         va_start(args, format);
         printf("[INFO] ");
+
         vprintf(format, args);
+        
         va_end(args);
         fflush(stdout);
     }
@@ -42,6 +44,8 @@ int is_outlier(float value) {
 void vSensorTask(void *pvParameters) {
     print_info("[SensorTask] Iniciada.\n");
 
+    const char *sensor_interval = getenv("SENSOR_INTERVAL_MS");
+
     while (1) {
         float value = read_sensor();
 
@@ -49,28 +53,27 @@ void vSensorTask(void *pvParameters) {
         {
             MqttMessage msg;
     
-            const char *sensor_interval = getenv("SENSOR_INTERVAL_MS");
-    
             snprintf(msg.topic, sizeof(msg.topic), "v1/devices/me/telemetry");
             snprintf(msg.payload, sizeof(msg.payload),
                      "{\"temperature\": %.2f}", value);
     
-            if (xQueueSend(mqttQueue, &msg, portMAX_DELAY) == pdPASS) {
+            if (xQueueSend(queue, &msg, portMAX_DELAY) == pdPASS) {
                 print_info("[SensorTask] Valor lido: %.2f\n", value);
             } else {
                 printf("[SensorTask] Erro ao enviar para fila MQTT!\n");
                 fflush(stdout);
             }
         }
+        else {
+            print_info("[SensorTask] Valor lido: %.2f é um outlier. Ignorando...\n", value);
+        }
 
-        
         vTaskDelay(pdMS_TO_TICKS(sensor_interval ? atoi(sensor_interval) : 2000));
     }
 }
 
 int connect_broker(struct mosquitto *mosq, const char *host, int port) 
 {
-    // Implementar conexão com o broker MQTT
     print_info("[MQTT] Conectando ao broker %s:%d...\n", host, port);
     int rc = mosquitto_connect(mosq, host, port,  60);
 
@@ -90,11 +93,12 @@ int connect_broker(struct mosquitto *mosq, const char *host, int port)
 }
 
 void sendMessages(struct mosquitto *mosq) {
-    // Implementar envio de mensagens MQTT
     MqttMessage msg;
     
+    const char *send_interval = getenv("SEND_INTERVAL_MS");
+
     while (1) {
-        if (xQueueReceive(mqttQueue, &msg, portMAX_DELAY)) {
+        if (xQueueReceive(queue, &msg, portMAX_DELAY)) {
             int mid = 0;
 
             int rc = mosquitto_publish(mosq, &mid, msg.topic, (int)strlen(msg.payload),
@@ -113,7 +117,7 @@ void sendMessages(struct mosquitto *mosq) {
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(send_interval));
     }
 }
 
@@ -167,15 +171,14 @@ void vMqttTask(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-// Função para criar a fila MQTT
-void create_mqtt_queue() {
+void create_queue() {
 
     const char *queue_size = getenv("QUEUE_SIZE");
 
-    mqttQueue = xQueueCreate(atoi(queue_size), sizeof(MqttMessage));
+    queue = xQueueCreate(atoi(queue_size), sizeof(MqttMessage));
 
-    if (mqttQueue == NULL) {
-        printf("[ERRO] Falha ao criar fila MQTT.\n");
+    if (queue == NULL) {
+        printf("[ERRO] Falha ao criar fila.\n");
         exit(1);
     }
 }
@@ -185,9 +188,9 @@ int main(void) {
 
     enable_infos = atoi(getenv("ENABLE_INFOS"));
 
-    print_info("Iniciando FreeRTOS MQTT TagoIO Simulation...\n");
+    print_info("Iniciando FreeRTOS Simulation...\n");
 
-    create_mqtt_queue();
+    create_queue();
 
     if (xTaskCreate(vSensorTask, "SensorTask", 1024, NULL, 1, NULL) == pdPASS)
         print_info("[OK] SensorTask criada.\n");

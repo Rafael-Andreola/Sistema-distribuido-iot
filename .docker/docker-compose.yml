@@ -40,8 +40,9 @@ services:
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 5000
         ENABLE_INFOS: 0
+        SENSOR_INTERVAL_MS: 5000
+        SEND_INTERVAL_MS: 10
     ports:
       - "9091:9090"
     depends_on:
@@ -59,8 +60,9 @@ services:
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 8000
         ENABLE_INFOS: 0
+        SENSOR_INTERVAL_MS: 8000
+        SEND_INTERVAL_MS: 10
     ports:
       - "9092:9090"
     depends_on:
@@ -78,8 +80,9 @@ services:
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 10000
         ENABLE_INFOS: 0
+        SENSOR_INTERVAL_MS: 10000
+        SEND_INTERVAL_MS: 10
     ports:
       - "9093:9090"
     depends_on:
@@ -97,8 +100,9 @@ services:
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
         QUEUE_SIZE: 10
-        SENSOR_INTERVAL_MS: 3000
         ENABLE_INFOS: 0
+        SENSOR_INTERVAL_MS: 3000
+        SEND_INTERVAL_MS: 10
     ports:
       - "9094:9090"
     depends_on:
