@@ -31,7 +31,6 @@ services:
   device_1:
     build:
       context: ..
-      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
     container_name: device_1
     environment:
@@ -39,10 +38,10 @@ services:
         DEVICE_TOKEN: T1_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
-        QUEUE_SIZE: 10
-        ENABLE_INFOS: 0
+        QUEUE_SIZE: 2
+        ENABLE_INFOS: 1
         SENSOR_INTERVAL_MS: 5000
-        SEND_INTERVAL_MS: 10
+        SEND_INTERVAL_MS: 1000
     ports:
       - "9091:9090"
     depends_on:
@@ -51,7 +50,6 @@ services:
   device_2:
     build:
       context: ..
-      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
     container_name: device_2
     environment:
@@ -59,10 +57,10 @@ services:
         DEVICE_TOKEN: T2_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
-        QUEUE_SIZE: 10
-        ENABLE_INFOS: 0
+        QUEUE_SIZE: 2
+        ENABLE_INFOS: 1
         SENSOR_INTERVAL_MS: 8000
-        SEND_INTERVAL_MS: 10
+        SEND_INTERVAL_MS: 1000
     ports:
       - "9092:9090"
     depends_on:
@@ -71,7 +69,6 @@ services:
   device_3:
     build:
       context: ..
-      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
     container_name: device_3
     environment:
@@ -79,10 +76,10 @@ services:
         DEVICE_TOKEN: T3_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
-        QUEUE_SIZE: 10
-        ENABLE_INFOS: 0
+        QUEUE_SIZE: 4
+        ENABLE_INFOS: 1
         SENSOR_INTERVAL_MS: 10000
-        SEND_INTERVAL_MS: 10
+        SEND_INTERVAL_MS: 1000
     ports:
       - "9093:9090"
     depends_on:
@@ -91,7 +88,6 @@ services:
   device_4:
     build:
       context: ..
-      dockerfile: .docker/Dockerfile
     image: freertos_mqtt_tago:latest
     container_name: device_4
     environment:
@@ -99,10 +95,10 @@ services:
         DEVICE_TOKEN: T4_TOKEN
         MQTT_HOST: host.docker.internal
         MQTT_PORT: 1883
-        QUEUE_SIZE: 10
-        ENABLE_INFOS: 0
-        SENSOR_INTERVAL_MS: 3000
-        SEND_INTERVAL_MS: 10
+        QUEUE_SIZE: 2
+        ENABLE_INFOS: 1
+        SENSOR_INTERVAL_MS: 4000
+        SEND_INTERVAL_MS: 1000
     ports:
       - "9094:9090"
     depends_on:

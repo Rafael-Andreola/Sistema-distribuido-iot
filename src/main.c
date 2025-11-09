@@ -75,18 +75,26 @@ void vSensorTask(void *pvParameters) {
 int connect_broker(struct mosquitto *mosq, const char *host, int port) 
 {
     print_info("[MQTT] Conectando ao broker %s:%d...\n", host, port);
-    int rc = mosquitto_connect(mosq, host, port,  60);
 
-    if (rc == MOSQ_ERR_INVAL)
+    int rc;
+
+    while (rc != MOSQ_ERR_SUCCESS)
     {
-        printf("[ERRO] mosquitto_connect inválido: %s. Verifique parâmetros.\n", mosquitto_strerror(rc));
-        mosquitto_destroy(mosq);
-        mosquitto_lib_cleanup();
-        vTaskDelete(NULL);
-    }
-    else {
-        printf("[ERRO] mosquitto_connect falhou: %s. Tentando novamente em 2s...\n", mosquitto_strerror(rc));
-        fflush(stdout);
+        rc = mosquitto_connect(mosq, host, port,  60);
+
+        if (rc == MOSQ_ERR_INVAL)
+        {
+            printf("[ERRO] mosquitto_connect inválido: %s. Verifique parâmetros.\n", mosquitto_strerror(rc));
+            mosquitto_destroy(mosq);
+            mosquitto_lib_cleanup();
+            vTaskDelete(NULL);
+        }
+        else {
+            printf("[ERRO] mosquitto_connect falhou: %s. Tentando novamente em 2s...\n", mosquitto_strerror(rc));
+            fflush(stdout);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
     return rc;
@@ -117,7 +125,7 @@ void sendMessages(struct mosquitto *mosq) {
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(send_interval));
+        vTaskDelay(pdMS_TO_TICKS(atoi(send_interval)));
     }
 }
 
